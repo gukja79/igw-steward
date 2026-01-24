@@ -413,7 +413,7 @@
                 const response = await fetch(`${SCRIPT_URL}?action=getSummary&department=${encodeURIComponent(department)}&date=${encodeURIComponent(date)}`);
                 const data = await response.json();
                 
-                displaySummary(department, date, data.summary);
+                displaySummary(department, date, data.summary, data.order);
             } catch (error) {
                 alert('데이터 조회 중 오류가 발생했습니다: ' + error.message);
             } finally {
@@ -421,7 +421,7 @@
             }
         }
 
-        function displaySummary(department, date, summary) {
+        function displaySummary(department, date, summary, order) {
             document.getElementById('departmentName').textContent = department;
             document.getElementById('summaryDate').textContent = '지출결의 날짜: ' + date;
             
@@ -432,7 +432,14 @@
             let totalIncome = 0;
             let totalCount = 0;
             
-            Object.keys(summary).forEach(category => {
+            // 계정과목을 순서대로 정렬 (자부담수입은 마지막)
+            const categories = Object.keys(summary).sort((a, b) => {
+                if (a === '자부담수입') return 1;
+                if (b === '자부담수입') return -1;
+                return (order[a] || 0) - (order[b] || 0);
+            });
+            
+            categories.forEach(category => {
                 const item = summary[category];
                 const isIncome = item.isIncome;
                 
