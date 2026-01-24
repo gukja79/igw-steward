@@ -87,7 +87,7 @@
         .category-name {
             font-weight: 600;
             color: #333;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             font-size: 15px;
         }
 
@@ -95,7 +95,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .balance-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .budget-label {
@@ -111,39 +117,53 @@
             white-space: nowrap;
         }
 
+        .budget-amount.negative {
+            color: #f44336 !important;
+        }
+
         .self-summary {
-            background: linear-gradient(135deg, #4caf5015 0%, #4caf5025 100%);
-            padding: 20px;
+            background: #f8f9fa;
+            padding: 15px;
             border-radius: 10px;
             margin-top: 20px;
+            border-left: 4px solid #4caf50;
         }
 
         .self-summary-title {
-            font-size: 18px;
+            font-size: 15px;
             font-weight: 600;
-            color: #4caf50;
-            margin-bottom: 15px;
+            color: #333;
+            margin-bottom: 10px;
         }
 
         .self-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .self-row:last-child {
             margin-bottom: 0;
-            padding-top: 10px;
-            border-top: 2px solid #4caf5050;
+            padding-top: 8px;
+            border-top: 2px solid #e0e0e0;
+            margin-top: 3px;
         }
 
         .self-label {
-            font-weight: 600;
-            color: #333;
+            font-size: 13px;
+            color: #666;
         }
 
         .self-amount {
+            font-size: 16px;
+            font-weight: 700;
+            color: #4caf50;
+        }
+
+        .self-amount.negative {
+            color: #f44336 !important;
+        }
             font-size: 18px;
             font-weight: 700;
             color: #4caf50;
@@ -287,39 +307,49 @@
                 const div = document.createElement('div');
                 div.className = 'budget-item';
                 
-                // 숫자가 아닌 값 처리
+                // 숫자 변환
                 const budget = Number(item.budget) || 0;
                 const expense = Number(item.expense) || 0;
                 const balance = Number(item.balance) || 0;
                 
+                // 마이너스면 빨간색
+                const balanceClass = balance < 0 ? 'budget-amount negative' : 'budget-amount';
+                
                 div.innerHTML = `
                     <div class="category-name">${item.category}</div>
                     <div class="budget-row">
-                        <div style="display: flex; gap: 5px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
                             <span class="budget-label">예산</span>
                             <span class="budget-amount">${budget.toLocaleString('ko-KR')}원</span>
                         </div>
-                        <div style="display: flex; gap: 5px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
                             <span class="budget-label">지출</span>
                             <span class="budget-amount">${expense.toLocaleString('ko-KR')}원</span>
                         </div>
-                        <div style="display: flex; gap: 5px;">
-                            <span class="budget-label">잔액</span>
-                            <span class="budget-amount">${balance.toLocaleString('ko-KR')}원</span>
-                        </div>
+                    </div>
+                    <div class="balance-row">
+                        <span class="budget-label">잔액</span>
+                        <span class="${balanceClass}">${balance.toLocaleString('ko-KR')}원</span>
                     </div>
                 `;
                 supportBudgets.appendChild(div);
             });
             
-            // 자부담 합계 (숫자 변환)
+            // 자부담 합계
             const income = Number(selfTotals.income) || 0;
             const expense = Number(selfTotals.expense) || 0;
             const balance = Number(selfTotals.balance) || 0;
             
+            const balanceClass = balance < 0 ? 'self-amount negative' : 'self-amount';
+            
             document.getElementById('selfIncome').textContent = income.toLocaleString('ko-KR') + '원';
+            document.getElementById('selfIncome').className = income < 0 ? 'self-amount negative' : 'self-amount';
+            
             document.getElementById('selfExpense').textContent = expense.toLocaleString('ko-KR') + '원';
+            document.getElementById('selfExpense').className = expense < 0 ? 'self-amount negative' : 'self-amount';
+            
             document.getElementById('selfBalance').textContent = balance.toLocaleString('ko-KR') + '원';
+            document.getElementById('selfBalance').className = balanceClass;
             
             // 반응형 폰트 크기 조절
             adjustBudgetAmountsFontSize();
