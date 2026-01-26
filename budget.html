@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0088cc">
+    <title>푸른회계 - 예결산 확인</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px 25px;
+            max-width: 450px;
+            margin: 0 auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .department-name {
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+
+        .back-btn {
+            padding: 8px 16px;
+            background: #e0e0e0;
+            border: none;
+            border-radius: 8px;
+            color: #333;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            background: #d0d0d0;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #667eea;
+            margin: 25px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .budget-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .budget-item.self {
+            border-left-color: #4caf50;
+        }
+
+        .category-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .execution-rate {
+            font-size: 14px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .budget-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .balance-row {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+        }
+
+        .budget-label {
+            font-size: 15px;
+            color: #666;
+            min-width: 40px;
+        }
+
+        .budget-amount {
+            font-size: 20px;
+            font-weight: 700;
+            color: #667eea;
+            white-space: nowrap;
+        }
+
+        .budget-amount.negative {
+            color: #f44336 !important;
+        }
+
+        .self-summary {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #4caf50;
+        }
+
+        .self-summary-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .self-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .self-row:last-child {
+            margin-bottom: 0;
+            padding-top: 8px;
+            border-top: 2px solid #e0e0e0;
+            margin-top: 3px;
+        }
+
+        .self-label {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .self-amount {
+            font-size: 16px;
+            font-weight: 700;
+            color: #4caf50;
+        }
+
+        .self-amount.negative {
+            color: #f44336 !important;
+        }
+
+        .totals-summary {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .totals-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .totals-row.total-balance {
+            margin-bottom: 0;
+            padding-top: 8px;
+            border-top: 2px solid #667eea50;
+            margin-top: 3px;
+        }
+
+        .totals-label {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .totals-amount {
+            font-size: 20px;
+            font-weight: 700;
+            color: #667eea;
+            text-align: right;
+            min-width: 150px;
+        }
+
+        .totals-amount.negative {
+            color: #f44336 !important;
+        }
+
+        .self-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .self-row:last-child {
+            margin-bottom: 0;
+            padding-top: 8px;
+            border-top: 2px solid #e0e0e0;
+            margin-top: 3px;
+        }
+
+        .self-label {
+            font-size: 15px;
+            color: #666;
+        }
+
+        .self-amount {
+            font-size: 20px;
+            font-weight: 700;
+            color: #4caf50;
+            text-align: right;
+            min-width: 150px;
+        }
+
+        .self-amount.negative {
+            color: #f44336 !important;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+            display: none;
+        }
+
+        .empty-message.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📊 예결산 확인</h1>
+                <div class="department-name" id="departmentDisplay"></div>
+            </div>
+            <button class="back-btn" onclick="goBack()">← 입력 화면</button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>데이터 조회 중...</p>
+        </div>
+
+        <div class="empty-message" id="emptyMessage">
+            <p>📭</p>
+            <p style="margin-top: 10px;">예결산 데이터가 없습니다</p>
+        </div>
+
+        <div id="budgetContent" style="display: none;">
+            <div class="section-title">지원금</div>
+            <div id="supportBudgets"></div>
+            
+            <div class="totals-summary">
+                <div class="totals-row">
+                    <span class="totals-label">예산 총액</span>
+                    <span class="totals-amount" id="supportTotalBudget">0원</span>
+                </div>
+                <div class="totals-row">
+                    <span class="totals-label">지출 총액</span>
+                    <span class="totals-amount" id="supportTotalExpense">0원</span>
+                </div>
+                <div class="totals-row total-balance">
+                    <span class="totals-label">잔액</span>
+                    <span class="totals-amount" id="supportTotalBalance">0원</span>
+                </div>
+            </div>
+
+            <div class="section-title" style="margin-top: 30px;">자부담</div>
+            <div id="selfBudgets"></div>
+            
+            <div class="self-summary">
+                <div class="self-row">
+                    <span class="self-label">수입</span>
+                    <span class="self-amount" id="selfIncome">0원</span>
+                </div>
+                <div class="self-row">
+                    <span class="self-label">지출</span>
+                    <span class="self-amount" id="selfExpense">0원</span>
+                </div>
+                <div class="self-row">
+                    <span class="self-label">잔액</span>
+                    <span class="self-amount" id="selfBalance">0원</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzh4QlzdWAy6ofKmrf8aGEqLAvQtC-qt86QQV-l1nyww37qpJDTLlTvFdXaNwUy5-64lQ/exec';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const department = urlParams.get('department');
+
+        if (department) {
+            document.getElementById('departmentDisplay').textContent = department;
+            loadBudget(department);
+        } else {
+            document.getElementById('departmentDisplay').textContent = '부서를 선택해주세요';
+            document.getElementById('emptyMessage').classList.add('show');
+        }
+
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+
+        async function loadBudget(department) {
+            const loading = document.getElementById('loading');
+            const budgetContent = document.getElementById('budgetContent');
+            const emptyMessage = document.getElementById('emptyMessage');
+            
+            // 로딩 표시
+            loading.style.display = 'block';
+            budgetContent.style.display = 'none';
+            emptyMessage.style.display = 'none';
+            
+            try {
+                const response = await fetch(`${SCRIPT_URL}?action=getBudget&department=${encodeURIComponent(department)}`);
+                const data = await response.json();
+                
+                // 로딩 숨김
+                loading.style.display = 'none';
+                
+                if (data.error) {
+                    alert(data.error);
+                    emptyMessage.style.display = 'block';
+                    return;
+                }
+                
+                if (data.budgetData && data.budgetData.length > 0) {
+                    displayBudget(data.budgetData, data.selfBudgetData || [], data.supportTotals || {budget: 0, expense: 0, balance: 0}, data.selfTotals);
+                    budgetContent.style.display = 'block';
+                } else {
+                    emptyMessage.style.display = 'block';
+                }
+            } catch (error) {
+                // 로딩 숨김
+                loading.style.display = 'none';
+                alert('데이터 조회 중 오류가 발생했습니다: ' + error.message);
+                emptyMessage.style.display = 'block';
+            }
+        }
+
+        function displayBudget(budgetData, selfBudgetData, supportTotals, selfTotals) {
+            // 지원금 계정과목
+            const supportBudgets = document.getElementById('supportBudgets');
+            supportBudgets.innerHTML = '';
+            
+            budgetData.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'budget-item';
+                
+                const budget = Number(item.budget) || 0;
+                const expense = Number(item.expense) || 0;
+                const balance = Number(item.balance) || 0;
+                
+                // 결산율을 퍼센트로 변환 (0.3465 → 34.65%)
+                let executionRateDisplay = '0.00%';
+                if (item.executionRate && item.executionRate !== '') {
+                    const rate = Number(item.executionRate);
+                    if (!isNaN(rate)) {
+                        executionRateDisplay = (rate * 100).toFixed(2) + '%';
+                    } else {
+                        executionRateDisplay = item.executionRate; // 이미 퍼센트 형식이면 그대로
+                    }
+                }
+                
+                const balanceClass = balance < 0 ? 'budget-amount negative' : 'budget-amount';
+                
+                div.innerHTML = `
+                    <div class="category-name">
+                        <span>${item.category}</span>
+                        <span style="font-size: 14px; color: #764ba2; font-weight: 700;">결산율 ${executionRateDisplay}</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span class="budget-label">예산</span>
+                            <span class="budget-amount">${budget.toLocaleString('ko-KR')}원</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span class="budget-label">지출</span>
+                            <span class="budget-amount">${expense.toLocaleString('ko-KR')}원</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span class="budget-label">잔액</span>
+                            <span class="${balanceClass}">${balance.toLocaleString('ko-KR')}원</span>
+                        </div>
+                    </div>
+                `;
+                supportBudgets.appendChild(div);
+            });
+            
+            // 지원금 총액
+            const totalBudget = Number(supportTotals.budget) || 0;
+            const totalExpense = Number(supportTotals.expense) || 0;
+            const totalBalance = Number(supportTotals.balance) || 0;
+            
+            document.getElementById('supportTotalBudget').textContent = totalBudget.toLocaleString('ko-KR') + '원';
+            document.getElementById('supportTotalBudget').className = totalBudget < 0 ? 'totals-amount negative' : 'totals-amount';
+            
+            document.getElementById('supportTotalExpense').textContent = totalExpense.toLocaleString('ko-KR') + '원';
+            document.getElementById('supportTotalExpense').className = totalExpense < 0 ? 'totals-amount negative' : 'totals-amount';
+            
+            document.getElementById('supportTotalBalance').textContent = totalBalance.toLocaleString('ko-KR') + '원';
+            document.getElementById('supportTotalBalance').className = totalBalance < 0 ? 'totals-amount negative' : 'totals-amount';
+            
+            // 자부담 계정과목
+            const selfBudgets = document.getElementById('selfBudgets');
+            selfBudgets.innerHTML = '';
+            
+            selfBudgetData.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'budget-item self';
+                
+                const expense = Number(item.expense) || 0;
+                
+                div.innerHTML = `
+                    <div class="category-name">${item.category}</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span class="budget-label">지출</span>
+                        <span class="budget-amount" style="color: #4caf50;">${expense.toLocaleString('ko-KR')}원</span>
+                    </div>
+                `;
+                selfBudgets.appendChild(div);
+            });
+            
+            // 자부담 합계
+            const income = Number(selfTotals.income) || 0;
+            const expense = Number(selfTotals.expense) || 0;
+            const balance = Number(selfTotals.balance) || 0;
+            
+            document.getElementById('selfIncome').textContent = income.toLocaleString('ko-KR') + '원';
+            document.getElementById('selfIncome').className = income < 0 ? 'self-amount negative' : 'self-amount';
+            
+            document.getElementById('selfExpense').textContent = expense.toLocaleString('ko-KR') + '원';
+            document.getElementById('selfExpense').className = expense < 0 ? 'self-amount negative' : 'self-amount';
+            
+            document.getElementById('selfBalance').textContent = balance.toLocaleString('ko-KR') + '원';
+            document.getElementById('selfBalance').className = balance < 0 ? 'self-amount negative' : 'self-amount';
+            
+            // 반응형 폰트 크기 조절
+            adjustBudgetAmountsFontSize();
+        }
+
+        function adjustBudgetAmountsFontSize() {
+            setTimeout(() => {
+                const allAmounts = document.querySelectorAll('.budget-amount, .self-amount, .totals-amount');
+                if (allAmounts.length === 0) return;
+                
+                let maxWidth = 0;
+                
+                // 초기 크기로 최대 너비 측정 (20px로 시작)
+                allAmounts.forEach(span => {
+                    span.style.fontSize = '20px';
+                    if (span.offsetWidth > maxWidth) {
+                        maxWidth = span.offsetWidth;
+                    }
+                });
+                
+                // 화면 너비의 30% 기준
+                const screenWidth = document.querySelector('.container').offsetWidth;
+                const maxAllowedWidth = screenWidth * 0.3;
+                
+                // 가장 긴 금액 기준으로 폰트 크기 결정 (모든 금액 동일하게!)
+                let fontSize = 20;
+                if (maxWidth > maxAllowedWidth * 0.9) {
+                    fontSize = 19;
+                }
+                if (maxWidth > maxAllowedWidth) {
+                    fontSize = 18;
+                }
+                if (maxWidth > maxAllowedWidth * 1.2) {
+                    fontSize = 17;
+                }
+                
+                // 모든 금액을 동일한 크기로 적용
+                allAmounts.forEach(span => {
+                    span.style.fontSize = fontSize + 'px';
+                });
+            }, 100);
+        }
+    </script>
+</body>
+</html>
