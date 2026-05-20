@@ -6,6 +6,20 @@
     <meta name="theme-color" content="#0088cc">
     <title>푸른회계 - 예결산 확인</title>
     <style>
+        :root {
+            --accent: #667eea;
+            --accent-dark: #764ba2;
+            --accent-rgb: 102, 126, 234;
+            --accent-dark-rgb: 118, 75, 162;
+        }
+
+        body.view-admin {
+            --accent: #f57c00;
+            --accent-dark: #e65100;
+            --accent-rgb: 245, 124, 0;
+            --accent-dark-rgb: 230, 81, 0;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -42,7 +56,7 @@
         }
 
         .department-name {
-            color: #667eea;
+            color: var(--accent);
             font-size: 16px;
             font-weight: 600;
             margin-top: 5px;
@@ -66,10 +80,10 @@
         .section-title {
             font-size: 18px;
             font-weight: 600;
-            color: #667eea;
+            color: var(--accent);
             margin: 25px 0 15px 0;
             padding-bottom: 10px;
-            border-bottom: 2px solid #667eea;
+            border-bottom: 2px solid var(--accent);
         }
 
         .budget-item {
@@ -77,7 +91,7 @@
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 10px;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid var(--accent);
         }
 
         .budget-item.self {
@@ -97,7 +111,7 @@
         .execution-rate {
             font-size: 14px;
             font-weight: 600;
-            color: #667eea;
+            color: var(--accent);
         }
 
         .budget-row {
@@ -122,7 +136,7 @@
         .budget-amount {
             font-size: 20px;
             font-weight: 700;
-            color: #667eea;
+            color: var(--accent);
             white-space: nowrap;
         }
 
@@ -175,11 +189,11 @@
         }
 
         .totals-summary {
-            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.08) 0%, rgba(var(--accent-dark-rgb), 0.08) 100%);
             padding: 15px;
             border-radius: 10px;
             margin-top: 20px;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid var(--accent);
         }
 
         .totals-row {
@@ -192,7 +206,7 @@
         .totals-row.total-balance {
             margin-bottom: 0;
             padding-top: 8px;
-            border-top: 2px solid #667eea50;
+            border-top: 2px solid rgba(var(--accent-rgb), 0.31);
             margin-top: 3px;
         }
 
@@ -205,7 +219,7 @@
         .totals-amount {
             font-size: 20px;
             font-weight: 700;
-            color: #667eea;
+            color: var(--accent);
             text-align: right;
             min-width: 150px;
         }
@@ -257,7 +271,7 @@
 
         .spinner {
             border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
+            border-top: 3px solid var(--accent);
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -280,6 +294,67 @@
         .empty-message.show {
             display: block;
         }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px 12px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 10px;
+            color: #666;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .tab:hover {
+            background: #e8e8e8;
+        }
+
+        .tab.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .tab-diff-badge {
+            background: #e53935;
+            color: white;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 10px;
+            line-height: 1.4;
+        }
+
+        .card-diff-badge {
+            display: inline-block;
+            background: #e53935;
+            color: white;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 10px;
+            margin-left: 8px;
+            white-space: nowrap;
+        }
+
+        .admin-empty {
+            text-align: center;
+            padding: 30px 20px;
+            color: #999;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -292,6 +367,14 @@
             <button class="back-btn" onclick="goBack()">← 입력 화면</button>
         </div>
 
+        <div class="tabs" id="viewTabs" style="display: none;">
+            <button class="tab active" type="button" data-view="accounting" onclick="switchTab('accounting')">회계용</button>
+            <button class="tab" type="button" data-view="admin" onclick="switchTab('admin')">
+                <span>행정용</span>
+                <span class="tab-diff-badge" id="diffBadge" style="display: none;">⚠ 0</span>
+            </button>
+        </div>
+
         <div class="loading" id="loading">
             <div class="spinner"></div>
             <p>데이터 조회 중...</p>
@@ -300,6 +383,10 @@
         <div class="empty-message" id="emptyMessage">
             <p>📭</p>
             <p style="margin-top: 10px;">예결산 데이터가 없습니다</p>
+        </div>
+
+        <div class="admin-empty" id="adminEmpty" style="display: none;">
+            행정용 데이터가 아직 입력되지 않았습니다
         </div>
 
         <div id="budgetContent" style="display: none;">
@@ -359,41 +446,131 @@
             window.location.href = 'index.html';
         }
 
+        let cachedData = null;
+        let diffs = { totalCount: 0, byCategory: {} };
+        let currentView = 'accounting';
+
         async function loadBudget(department) {
             const loading = document.getElementById('loading');
             const budgetContent = document.getElementById('budgetContent');
             const emptyMessage = document.getElementById('emptyMessage');
-            
-            // 로딩 표시
+            const viewTabs = document.getElementById('viewTabs');
+
             loading.style.display = 'block';
             budgetContent.style.display = 'none';
             emptyMessage.style.display = 'none';
-            
+            viewTabs.style.display = 'none';
+
             try {
                 const response = await fetch(`${SCRIPT_URL}?action=getBudget&department=${encodeURIComponent(department)}`);
                 const data = await response.json();
-                
-                // 로딩 숨김
+
                 loading.style.display = 'none';
-                
+
                 if (data.error) {
                     alert(data.error);
                     emptyMessage.style.display = 'block';
                     return;
                 }
-                
-                if (data.budgetData && data.budgetData.length > 0) {
-                    displayBudget(data.budgetData, data.selfBudgetData || [], data.supportTotals || {budget: 0, expense: 0, balance: 0}, data.selfTotals);
-                    budgetContent.style.display = 'block';
-                } else {
+
+                const emptySection = { budgetData: [], selfBudgetData: [], supportTotals: {budget:0, expense:0, balance:0}, selfTotals: {income:0, expense:0, balance:0} };
+                cachedData = {
+                    accounting: data.accounting || emptySection,
+                    admin: data.admin || emptySection
+                };
+
+                const hasAccounting = cachedData.accounting.budgetData.length > 0 || cachedData.accounting.selfBudgetData.length > 0;
+                const hasAdmin = cachedData.admin.budgetData.length > 0 || cachedData.admin.selfBudgetData.length > 0;
+
+                if (!hasAccounting && !hasAdmin) {
                     emptyMessage.style.display = 'block';
+                    return;
                 }
+
+                diffs = computeDiffs(cachedData);
+                updateDiffBadge();
+
+                viewTabs.style.display = 'flex';
+                currentView = 'accounting';
+                applyView();
             } catch (error) {
-                // 로딩 숨김
                 loading.style.display = 'none';
                 alert('데이터 조회 중 오류가 발생했습니다: ' + error.message);
                 emptyMessage.style.display = 'block';
             }
+        }
+
+        function computeDiffs(cached) {
+            const accountingMap = {};
+            cached.accounting.budgetData.forEach(item => {
+                accountingMap[item.category] = Number(item.expense) || 0;
+            });
+            const adminMap = {};
+            cached.admin.budgetData.forEach(item => {
+                adminMap[item.category] = Number(item.expense) || 0;
+            });
+
+            const byCategory = {};
+            let totalCount = 0;
+
+            Object.keys(accountingMap).forEach(cat => {
+                if (cat in adminMap) {
+                    const diff = adminMap[cat] - accountingMap[cat];
+                    if (diff !== 0) {
+                        byCategory[cat] = diff;
+                        totalCount++;
+                    }
+                } else {
+                    console.warn('[diff] 행정용에 없는 회계용 계정과목:', cat);
+                }
+            });
+
+            Object.keys(adminMap).forEach(cat => {
+                if (!(cat in accountingMap)) {
+                    console.warn('[diff] 회계용에 없는 행정용 계정과목:', cat);
+                }
+            });
+
+            return { totalCount, byCategory };
+        }
+
+        function updateDiffBadge() {
+            const badge = document.getElementById('diffBadge');
+            if (diffs.totalCount > 0) {
+                badge.textContent = `⚠ ${diffs.totalCount}`;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        function switchTab(view) {
+            if (view === currentView) return;
+            currentView = view;
+            applyView();
+        }
+
+        function applyView() {
+            document.body.classList.toggle('view-admin', currentView === 'admin');
+
+            document.querySelectorAll('.tab').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.view === currentView);
+            });
+
+            const budgetContent = document.getElementById('budgetContent');
+            const adminEmpty = document.getElementById('adminEmpty');
+            const section = cachedData[currentView];
+            const hasData = section.budgetData.length > 0 || section.selfBudgetData.length > 0;
+
+            if (!hasData && currentView === 'admin') {
+                budgetContent.style.display = 'none';
+                adminEmpty.style.display = 'block';
+                return;
+            }
+
+            adminEmpty.style.display = 'none';
+            budgetContent.style.display = 'block';
+            displayBudget(section.budgetData, section.selfBudgetData, section.supportTotals, section.selfTotals);
         }
 
         function displayBudget(budgetData, selfBudgetData, supportTotals, selfTotals) {
@@ -421,11 +598,18 @@
                 }
                 
                 const balanceClass = balance < 0 ? 'budget-amount negative' : 'budget-amount';
-                
+
+                let diffBadgeHTML = '';
+                if (currentView === 'admin' && diffs.byCategory.hasOwnProperty(item.category)) {
+                    const diffValue = diffs.byCategory[item.category];
+                    const sign = diffValue > 0 ? '+' : '';
+                    diffBadgeHTML = `<span class="card-diff-badge">⚠ ${sign}${diffValue.toLocaleString('ko-KR')}원</span>`;
+                }
+
                 div.innerHTML = `
                     <div class="category-name">
-                        <span>${item.category}</span>
-                        <span style="font-size: 14px; color: #764ba2; font-weight: 700;">결산율 ${executionRateDisplay}</span>
+                        <span>${item.category}${diffBadgeHTML}</span>
+                        <span style="font-size: 14px; color: var(--accent-dark); font-weight: 700;">결산율 ${executionRateDisplay}</span>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 5px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
