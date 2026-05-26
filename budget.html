@@ -620,9 +620,10 @@
 
                 div.innerHTML = `
                     <div class="category-name">
-                        <span>${item.category}${diffBadgeHTML}</span>
-                        <span style="font-size: 14px; color: var(--accent-dark); font-weight: 700;">결산 ${executionRateDisplay}</span>
+                        <span>${item.category}</span>
+                        <span style="font-size: 14px; color: var(--accent-dark); font-weight: 700;">결산율 ${executionRateDisplay}</span>
                     </div>
+                    ${diffBadgeHTML ? `<div style="margin-bottom: 8px;">${diffBadgeHTML}</div>` : ''}
                     <div style="display: flex; flex-direction: column; gap: 5px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span class="budget-label">예산</span>
