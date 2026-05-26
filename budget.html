@@ -584,7 +584,7 @@
                 
                 const budget = Number(item.budget) || 0;
                 const expense = Number(item.expense) || 0;
-                const balance = Number(item.balance) || 0;
+                const balance = budget - expense;
                 
                 // 결산율을 퍼센트로 변환 (0.3465 → 34.65%)
                 let executionRateDisplay = '0.00%';
@@ -632,7 +632,7 @@
             // 지원금 총액
             const totalBudget = Number(supportTotals.budget) || 0;
             const totalExpense = Number(supportTotals.expense) || 0;
-            const totalBalance = Number(supportTotals.balance) || 0;
+            const totalBalance = totalBudget - totalExpense;
             
             document.getElementById('supportTotalBudget').textContent = totalBudget.toLocaleString('ko-KR') + '원';
             document.getElementById('supportTotalBudget').className = totalBudget < 0 ? 'totals-amount negative' : 'totals-amount';
@@ -666,7 +666,7 @@
             // 자부담 합계
             const income = Number(selfTotals.income) || 0;
             const expense = Number(selfTotals.expense) || 0;
-            const balance = Number(selfTotals.balance) || 0;
+            const balance = income - expense;
             
             document.getElementById('selfIncome').textContent = income.toLocaleString('ko-KR') + '원';
             document.getElementById('selfIncome').className = income < 0 ? 'self-amount negative' : 'self-amount';
