@@ -1,3 +1,10 @@
+// 시트별 컬럼 매핑 (0-based 인덱스)
+// 회계용/행정용 두 시트 모두 raw 지출 내역을 담지만 컬럼 구조가 다름
+const SHEET_COLUMNS = {
+  accounting: { sheetName: '회계용', cat: 0, date: 1, desc: 2, amount: 3, income: 4, fund: 5 },
+  admin:      { sheetName: '행정용', cat: 0, date: 1, desc: 6, amount: 7, income: 8, fund: 5 }
+};
+
 // 부서별 스프레드시트 설정 (순서 정렬됨)
 const DEPARTMENTS = {
   // 예배/찬양
@@ -561,7 +568,98 @@ function doGet(e) {
         }))
         .setMimeType(ContentService.MimeType.JSON);
     }
-    
+
+    // 계정과목별 raw 지출 내역 조회 (회계용 또는 행정용)
+    if (action === 'getTransactions') {
+      var department = e.parameter.department;
+      var sheetType = e.parameter.sheetType;
+
+      if (!department || !DEPARTMENTS[department]) {
+        throw new Error('유효하지 않은 부서명입니다.');
+      }
+
+      var columns = SHEET_COLUMNS[sheetType];
+      if (!columns) {
+        throw new Error('유효하지 않은 sheetType입니다. (accounting 또는 admin)');
+      }
+
+      var config = DEPARTMENTS[department];
+      var spreadsheet = SpreadsheetApp.openById(config.spreadsheetId);
+      var sheet = spreadsheet.getSheetByName(columns.sheetName);
+
+      // 시트가 없으면 빈 배열 + sheetMissing 플래그 (행정용 미동기화 부서 대응)
+      if (!sheet) {
+        return ContentService
+          .createTextOutput(JSON.stringify({ transactions: [], sheetMissing: true }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      var lastRow = sheet.getLastRow();
+      if (lastRow < 2) {
+        return ContentService
+          .createTextOutput(JSON.stringify({ transactions: [] }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      // "yyyy. M. d" 명시적 파싱. Date면 그대로, 실패 시 epoch(1970)로 정렬 맨 뒤
+      function parseSheetDate(value) {
+        if (value instanceof Date && !isNaN(value.getTime())) {
+          return value;
+        }
+        if (typeof value === 'string' && value.trim() !== '') {
+          var match = value.trim().match(/^(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})$/);
+          if (match) {
+            var parsed = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+            if (!isNaN(parsed.getTime())) return parsed;
+          }
+        }
+        return new Date(0);
+      }
+
+      // A~I 9열을 한 번에 읽기
+      var data = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
+      var transactions = [];
+
+      for (var i = 0; i < data.length; i++) {
+        var row = data[i];
+        var category = row[columns.cat];
+        var amount = Number(row[columns.amount]) || 0;
+
+        // 카테고리 없거나 지출금액이 없으면 skip (수입행 자연스럽게 제외)
+        if (!category || category === '' || amount === 0) continue;
+
+        var dateValue = row[columns.date];
+        var sortDate = parseSheetDate(dateValue);
+
+        // 응답용 표시 문자열: Date면 포맷, 비어있거나 파싱 실패면 '' 또는 원본
+        var dateStr = '';
+        if (dateValue instanceof Date && !isNaN(dateValue.getTime())) {
+          dateStr = Utilities.formatDate(dateValue, Session.getScriptTimeZone(), "yyyy. M. d");
+        } else if (typeof dateValue === 'string' && dateValue.trim() !== '') {
+          dateStr = dateValue.trim();
+        }
+
+        transactions.push({
+          category: String(category),
+          date: dateStr,
+          description: String(row[columns.desc] || ''),
+          amount: amount,
+          fundType: String(row[columns.fund] || ''),
+          _sortDate: sortDate.getTime()
+        });
+      }
+
+      // 최신순 정렬 후 임시 필드 제거
+      transactions.sort(function(a, b) {
+        return b._sortDate - a._sortDate;
+      });
+      transactions.forEach(function(t) { delete t._sortDate; });
+
+      return ContentService
+        .createTextOutput(JSON.stringify({ transactions: transactions }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     return ContentService.createTextOutput("웹앱이 작동 중입니다.");
     
   } catch (error) {

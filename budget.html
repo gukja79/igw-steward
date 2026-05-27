@@ -362,6 +362,133 @@
             font-size: 13px;
             margin: -8px 0 16px 0;
         }
+
+        /* === 카드 펼침 (계정과목 내역) === */
+
+        .budget-item.expandable {
+            cursor: pointer;
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+
+        /* 데스크톱(마우스 호버 가능 환경)에서만 적용 — 모바일 sticky hover 방지 */
+        @media (hover: hover) {
+            .budget-item.expandable:hover {
+                background: #f0f1f4;
+            }
+        }
+
+        /* 펼친 상태: 배경 톤 + 약한 그림자 — 탭 색상 따라감 (회계용=보라, 행정용=주황) */
+        .budget-item.expanded {
+            background: rgba(var(--accent-rgb), 0.06);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        /* 자부담 카드는 녹색 톤 (탭 색상과 독립) */
+        .budget-item.self.expanded {
+            background: rgba(76, 175, 80, 0.06);
+        }
+
+        .card-toggle {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            margin-top: 8px;
+            transition: transform 0.2s;
+            user-select: none;
+        }
+
+        .budget-item.expanded .card-toggle {
+            transform: rotate(180deg);
+        }
+
+        /* 펼침 영역 — 카드 내부 클릭이 토글로 안 전파되게 cursor도 기본값으로 */
+        .transactions-panel {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            cursor: default;
+        }
+
+        .tx-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            font-size: 13px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .tx-row:last-child {
+            border-bottom: none;
+        }
+
+        .tx-tag {
+            flex-shrink: 0;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            min-width: 44px;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        /* 지원금 태그 — 탭 색상 따라감 */
+        .tx-tag.tag-support {
+            background: var(--accent);
+            color: white;
+        }
+
+        /* 자부담 태그 — 항상 녹색 (시트 데이터 fundType과 매칭) */
+        .tx-tag.tag-self {
+            background: #4caf50;
+            color: white;
+        }
+
+        /* 기타 fundType (빈 값 등) — 사용자가 데이터 이상 인지하도록 회색 */
+        .tx-tag.tag-other {
+            background: #e0e0e0;
+            color: #666;
+        }
+
+        .tx-date {
+            flex-shrink: 0;
+            color: #666;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .tx-desc {
+            flex: 1;
+            color: #333;
+            word-break: break-word;
+            min-width: 0;
+        }
+
+        .tx-amount {
+            flex-shrink: 0;
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+        }
+
+        .tx-loading, .tx-empty, .tx-error {
+            text-align: center;
+            padding: 16px 8px;
+            color: #999;
+            font-size: 13px;
+        }
+
+        .tx-error {
+            color: #e53935;
+        }
+
+        .tx-loading .spinner {
+            width: 24px;
+            height: 24px;
+            border-width: 2px;
+            margin: 0 auto 8px;
+        }
     </style>
 </head>
 <body>
@@ -458,6 +585,12 @@
         let cachedData = null;
         let diffs = { totalCount: 0, byCategory: {} };
         let currentView = 'accounting';
+
+        // === 카드 펼침 (계정과목 내역) ===
+        // 페이지 머무는 동안만 유효. 새로고침 시 의도적 초기화 (회계가 방금 입력한 거 못 보는 사고 방지)
+        let transactionsCache = { accounting: null, admin: null };
+        // in-flight Promise — 같은 sheetType 동시 호출 시 중복 fetch 방지
+        let transactionsFetching = { accounting: null, admin: null };
 
         async function loadBudget(department) {
             const loading = document.getElementById('loading');
@@ -592,12 +725,15 @@
             
             budgetData.forEach(item => {
                 const div = document.createElement('div');
-                div.className = 'budget-item';
-                
+                div.className = 'budget-item expandable';
+                div.dataset.category = item.category;
+                div.dataset.sheetType = currentView;
+                div.onclick = function() { toggleCard(this); };
+
                 const budget = Number(item.budget) || 0;
                 const expense = Number(item.expense) || 0;
                 const balance = budget - expense;
-                
+
                 // 결산율을 퍼센트로 변환 (0.3465 → 34.65%)
                 let executionRateDisplay = '0.00%';
                 if (item.executionRate && item.executionRate !== '') {
@@ -608,7 +744,7 @@
                         executionRateDisplay = item.executionRate; // 이미 퍼센트 형식이면 그대로
                     }
                 }
-                
+
                 const balanceClass = balance < 0 ? 'budget-amount negative' : 'budget-amount';
 
                 let diffBadgeHTML = '';
@@ -638,6 +774,8 @@
                             <span class="${balanceClass}">${balance.toLocaleString('ko-KR')}원</span>
                         </div>
                     </div>
+                    <div class="card-toggle">▼</div>
+                    <div class="transactions-panel" style="display: none;" onclick="event.stopPropagation()"></div>
                 `;
                 supportBudgets.appendChild(div);
             });
@@ -662,16 +800,21 @@
             
             selfBudgetData.forEach(item => {
                 const div = document.createElement('div');
-                div.className = 'budget-item self';
-                
+                div.className = 'budget-item self expandable';
+                div.dataset.category = item.category;
+                div.dataset.sheetType = currentView;
+                div.onclick = function() { toggleCard(this); };
+
                 const expense = Number(item.expense) || 0;
-                
+
                 div.innerHTML = `
                     <div class="category-name">${item.category}</div>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span class="budget-label">지출</span>
                         <span class="budget-amount" style="color: #4caf50;">${expense.toLocaleString('ko-KR')}원</span>
                     </div>
+                    <div class="card-toggle">▼</div>
+                    <div class="transactions-panel" style="display: none;" onclick="event.stopPropagation()"></div>
                 `;
                 selfBudgets.appendChild(div);
             });
@@ -730,6 +873,130 @@
                     span.style.fontSize = fontSize + 'px';
                 });
             }, 100);
+        }
+
+        // === 카드 펼침 (계정과목 내역) ===
+
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        async function fetchTransactions(sheetType) {
+            // 캐시 hit → 즉시 리턴
+            if (transactionsCache[sheetType]) {
+                return transactionsCache[sheetType];
+            }
+            // in-flight 있으면 같은 Promise 공유 (여러 카드 동시 첫 펼침 시 fetch 1번만)
+            if (transactionsFetching[sheetType]) {
+                return transactionsFetching[sheetType];
+            }
+
+            const promise = (async () => {
+                try {
+                    const url = `${SCRIPT_URL}?action=getTransactions`
+                              + `&department=${encodeURIComponent(department)}`
+                              + `&sheetType=${sheetType}`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    if (data.status === 'error') {
+                        throw new Error(data.message || '서버 오류');
+                    }
+
+                    // 정상 응답만 캐시 — 에러 시 다음 시도 가능
+                    transactionsCache[sheetType] = data;
+                    return data;
+                } finally {
+                    // 성공/실패 무관 in-flight 정리
+                    transactionsFetching[sheetType] = null;
+                }
+            })();
+
+            transactionsFetching[sheetType] = promise;
+            return promise;
+        }
+
+        async function loadTransactions(panelEl, category, sheetType, cardType) {
+            panelEl.innerHTML = `<div class="tx-loading"><div class="spinner"></div>내역 조회 중...</div>`;
+
+            try {
+                const data = await fetchTransactions(sheetType);
+                renderTransactions(panelEl, category, sheetType, cardType, data);
+                panelEl.dataset.loaded = 'true';
+            } catch (error) {
+                // dataset.loaded 설정 안 함 → 사용자가 접었다 다시 펼치면 자동 재시도
+                panelEl.innerHTML = `<div class="tx-error">내역 조회 실패: ${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        function renderTransactions(panelEl, category, sheetType, cardType, data) {
+            // 행정용 시트 미동기화 부서 안내
+            if (data.sheetMissing && sheetType === 'admin') {
+                panelEl.innerHTML = `<div class="tx-empty">행정용 데이터가 아직 동기화되지 않았습니다</div>`;
+                return;
+            }
+
+            // 카드 타입에 맞는 fundType만 (지원금 카드=지원금만, 자부담 카드=자부담만)
+            // → "자부담수입" 같은 비표준 raw 값은 자동 제외, 카드 집계 금액과 내역 합이 일치
+            const expectedFundType = cardType === 'self' ? '자부담' : '지원금';
+
+            const transactions = (data.transactions || [])
+                .filter(t => t.category === category && t.fundType === expectedFundType);
+
+            if (transactions.length === 0) {
+                panelEl.innerHTML = `<div class="tx-empty">내역 없음</div>`;
+                return;
+            }
+
+            const rowsHtml = transactions.map(t => {
+                // fundType raw 값 그대로 우대. "지원금"/"자부담"만 한국어 축약 라벨 + 색상.
+                const tagClass = t.fundType === '지원금' ? 'tag-support'
+                               : t.fundType === '자부담' ? 'tag-self'
+                               : 'tag-other';
+                const tagLabel = t.fundType === '지원금' ? '지원'
+                               : t.fundType === '자부담' ? '자부담'
+                               : (t.fundType || '기타');
+                return `
+                    <div class="tx-row">
+                        <span class="tx-tag ${tagClass}">${escapeHtml(tagLabel)}</span>
+                        <span class="tx-date">${escapeHtml(t.date)}</span>
+                        <span class="tx-desc">${escapeHtml(t.description)}</span>
+                        <span class="tx-amount">${Number(t.amount).toLocaleString('ko-KR')}원</span>
+                    </div>
+                `;
+            }).join('');
+
+            panelEl.innerHTML = rowsHtml;
+        }
+
+        function toggleCard(cardEl) {
+            const panel = cardEl.querySelector('.transactions-panel');
+            if (!panel) return;
+
+            const isExpanded = cardEl.classList.contains('expanded');
+
+            if (isExpanded) {
+                cardEl.classList.remove('expanded');
+                panel.style.display = 'none';
+                return;
+            }
+
+            cardEl.classList.add('expanded');
+            panel.style.display = 'block';
+
+            // 이미 로드된 카드면 그대로 (캐시 데이터 그대로 표시)
+            if (panel.dataset.loaded === 'true') return;
+
+            const category = cardEl.dataset.category;
+            const sheetType = cardEl.dataset.sheetType;
+            const cardType = cardEl.classList.contains('self') ? 'self' : 'support';
+            loadTransactions(panel, category, sheetType, cardType);
         }
     </script>
 </body>
