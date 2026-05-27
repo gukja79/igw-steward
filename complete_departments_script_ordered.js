@@ -5,6 +5,27 @@ const SHEET_COLUMNS = {
   admin:      { sheetName: '행정용', cat: 0, date: 1, desc: 6, amount: 7, income: 8, fund: 5 }
 };
 
+// === 선교부 인명 마스킹 (2026-05-27 추가) ===
+// 행정용 시트에서만 적용. 회계용은 원본 유지.
+// 패턴: 이름($금액) → 첫글자만 남기고 나머지는 *로 마스킹
+// 예: 이진복($1,200) → 이**($1,200), John Smith($300) → J*** S****($300)
+const MASK_DEPARTMENTS = ['세계선교부', '통일선교부'];
+
+function maskName(text) {
+  if (!text) return text;
+  // 한글 이름: 가나다($100), 가나다라($1,200) 등
+  text = text.replace(/([가-힣])([가-힣]+)(\(\$[\d,]+\))/g, function(m, first, rest, money) {
+    return first + '*'.repeat(rest.length) + money;
+  });
+  // 영문 이름: John($100), John Smith($200) 등 (각 단어 첫글자만 유지)
+  text = text.replace(/([A-Za-z]+(?:\s+[A-Za-z]+)*)(\(\$[\d,]+\))/g, function(m, name, money) {
+    return name.split(/\s+/).map(function(w) {
+      return w[0] + '*'.repeat(w.length - 1);
+    }).join(' ') + money;
+  });
+  return text;
+}
+
 // 부서별 스프레드시트 설정 (순서 정렬됨)
 const DEPARTMENTS = {
   // 예배/찬양
@@ -654,6 +675,14 @@ function doGet(e) {
         return b._sortDate - a._sortDate;
       });
       transactions.forEach(function(t) { delete t._sortDate; });
+
+      // === 선교부 인명 마스킹 (2026-05-27 추가) ===
+      // 행정용 시트의 세계선교부/통일선교부일 때만 적요 마스킹
+      if (sheetType === 'admin' && MASK_DEPARTMENTS.indexOf(department) !== -1) {
+        transactions.forEach(function(t) {
+          t.description = maskName(t.description);
+        });
+      }
 
       return ContentService
         .createTextOutput(JSON.stringify({ transactions: transactions }))
